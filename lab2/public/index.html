@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT Authentication Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>JWT Authentication Demo</h1>
+        
+        <div id="authSection" class="auth-section">
+            <div class="auth-tabs">
+                <button type="button" class="tab-button active" onclick="switchTab('login')">Login</button>
+                <button type="button" class="tab-button" onclick="switchTab('register')">Register</button>
+            </div>
+            
+            <form id="authForm">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" required>
+                </div>
+                <div class="form-group" id="roleGroup" style="display: none;">
+                    <label for="role">Role:</label>
+                    <select id="role">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <button type="submit" id="authButton">Login</button>
+            </form>
+            <div id="authResponse" class="response"></div>
+        </div>
+
+        <div id="userInfo"></div>
+
+        <div class="actions">
+            <h2>Protected Actions</h2>
+            <button onclick="getProfile()">Get My Profile</button>
+            <button onclick="getAllUsers()">Get All Users (Admin Only)</button>
+            <button onclick="logout()">Logout</button>
+        </div>
+
+        <div id="actionResponse" class="response"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001';
+        let authToken = localStorage.getItem('authToken');
+
+        if (authToken) {
+            showUserInfo();
+            hideAuthSection();
+        }
+
+        let currentMode = 'login';
+
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const role = currentMode === 'register' ? document.getElementById('role').value : undefined;
+
+            const endpoint = currentMode === 'register' ? '/users/register' : '/users/login';
+            const requestBody = currentMode === 'register' 
+                ? { username, password, role }
+                : { username, password };
+
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+                const responseDiv = document.getElementById('authResponse');
+                
+                if (response.ok) {
+                    responseDiv.className = 'response success';
+                    responseDiv.innerHTML = `
+                        <strong>Success!</strong> ${data.message}
+                        <div class="token-controls">
+                            <button type="button" class="secondary" onclick="toggleToken('authToken')">Show Token</button>
+                        </div>
+                        <div id="authToken" class="token-display">Token: ${data.token}</div>
+                    `;
+                    authToken = data.token;
+                    localStorage.setItem('authToken', authToken);
+                    showUserInfo();
+                    hideAuthSection();
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.innerHTML = `<strong>Error!</strong> ${data.message}`;
+                }
+                responseDiv.style.display = 'block';
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+
+        async function getProfile() {
+            if (!authToken) {
+                showActionResponse('Please login first', false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/users/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showActionResponse(`
+                        <h3>Your Profile:</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `, true);
+                } else {
+                    showActionResponse(data.message, false);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function getAllUsers() {
+            if (!authToken) {
+                showActionResponse('Please login first', false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showActionResponse(`
+                        <h3>All Users:</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `, true);
+                } else {
+                    showActionResponse(data.message, false);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function showUserInfo() {
+            if (authToken) {
+                const payload = JSON.parse(atob(authToken.split('.')[1]));
+                const userInfoDiv = document.getElementById('userInfo');
+                userInfoDiv.innerHTML = `
+                    <h3>Logged in as:</h3>
+                    <p><strong>Username:</strong> ${payload.username}</p>
+                    <p><strong>Role:</strong> ${payload.role}</p>
+                    <p><strong>User ID:</strong> ${payload.id}</p>
+                `;
+                userInfoDiv.style.display = 'block';
+            }
+        }
+
+        function showActionResponse(message, isSuccess) {
+            const responseDiv = document.getElementById('actionResponse');
+            responseDiv.className = `response ${isSuccess ? 'success' : 'error'}`;
+            responseDiv.innerHTML = message;
+            responseDiv.style.display = 'block';
+        }
+
+        function toggleToken(tokenId) {
+            const tokenDiv = document.getElementById(tokenId);
+            const button = event.target;
+            
+            if (tokenDiv.classList.contains('visible')) {
+                tokenDiv.classList.remove('visible');
+                button.textContent = 'Show Token';
+            } else {
+                tokenDiv.classList.add('visible');
+                button.textContent = 'Hide Token';
+            }
+        }
+
+        function switchTab(mode) {
+            currentMode = mode;
+            const tabs = document.querySelectorAll('.tab-button');
+            const roleGroup = document.getElementById('roleGroup');
+            const authButton = document.getElementById('authButton');
+            const authResponse = document.getElementById('authResponse');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (mode === 'register') {
+                roleGroup.style.display = 'block';
+                authButton.textContent = 'Register';
+            } else {
+                roleGroup.style.display = 'none';
+                authButton.textContent = 'Login';
+            }
+            
+            document.getElementById('authForm').reset();
+            authResponse.style.display = 'none';
+        }
+
+        function hideAuthSection() {
+            document.getElementById('authSection').style.display = 'none';
+        }
+        
+        function showAuthSection() {
+            document.getElementById('authSection').style.display = 'block';
+        }
+
+        function logout() {
+            authToken = null;
+            localStorage.removeItem('authToken');
+            document.getElementById('userInfo').style.display = 'none';
+            showActionResponse('Logged out successfully', true);
+            document.getElementById('authForm').reset();
+            showAuthSection();
+            switchTab('login');
+        }
+    </script>
+</body>
+</html>
