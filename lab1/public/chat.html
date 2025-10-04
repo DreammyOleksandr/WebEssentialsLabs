@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="chat-container">
+        <aside class="sidebar">
+            <div class="room-info">
+                <h3>Room: <span id="room-name"></span></h3>
+                <h3>Username: <span id="user-name"></span></h3>
+            </div>
+            <div class="users-container">
+                <h3>Users in the chatroom</h3>
+                <ul id="users-list"></ul>
+            </div>
+        </aside>
+        
+        <main class="chat-main">
+            <div class="admin-message" id="admin-welcome">
+                <span class="time"></span>
+                Welcome, <span id="welcome-username"></span>!
+            </div>
+            
+            <div class="messages-container" id="messages-container"></div>
+            
+            <form class="message-form" id="message-form">
+                <input 
+                    type="text" 
+                    id="message-input" 
+                    placeholder="Message"
+                    required
+                    autocomplete="off"
+                >
+                <button type="submit" class="btn send-btn">Send</button>
+            </form>
+        </main>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const username = sessionStorage.getItem('username');
+        const room = sessionStorage.getItem('room');
+        
+        if (!username || !room) {
+            window.location.href = '/';
+        }
+        
+        document.getElementById('room-name').textContent = room;
+        document.getElementById('user-name').textContent = username;
+        document.getElementById('welcome-username').textContent = username;
+        document.querySelector('#admin-welcome .time').textContent = new Date().toTimeString().split(' ')[0];
+        
+        const socket = io();
+        
+        socket.emit('join', { username, room });
+        
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const messagesContainer = document.getElementById('messages-container');
+        const usersList = document.getElementById('users-list');
+        
+        messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const message = messageInput.value.trim();
+            if (message) {
+                socket.emit('chatMessage', message);
+                messageInput.value = '';
+                messageInput.focus();
+            }
+        });
+        
+        socket.on('message', (data) => {
+            displayMessage(data);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        });
+        
+        socket.on('connectedUsers', (data) => {
+            displayUsers(data.users);
+        });
+        
+        function displayMessage(data) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            
+            if (data.user === 'Admin') {
+                messageDiv.classList.add('admin-message');
+                messageDiv.innerHTML = `
+                    <span class="time">${data.time}</span>
+                    ${data.text}
+                `;
+            } else {
+                const isOwnMessage = data.user === username;
+                messageDiv.classList.add(isOwnMessage ? 'own-message' : 'other-message');
+                messageDiv.innerHTML = `
+                    <div class="message-header">
+                        <span class="username">${data.user}</span>
+                        <span class="time">${data.time}</span>
+                    </div>
+                    <div class="message-text">${data.text}</div>
+                `;
+            }
+            
+            messagesContainer.appendChild(messageDiv);
+        }
+        
+        function displayUsers(users) {
+            usersList.innerHTML = users
+                .map(user => `<li>${user.username}</li>`)
+                .join('');
+        }
+    </script>
+</body>
+</html>
