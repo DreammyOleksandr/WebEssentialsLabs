@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управління документами</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Система управління документами</h1>
+            <p>Відстеження передачі документів виконавцям</p>
+        </header>
+
+        <main class="main-content">
+            <section class="form-section">
+                <div class="form-container">
+                    <h2 id="form-title">Додати новий документ</h2>
+                    <form id="document-form">
+                        <input type="hidden" id="document-id">
+                        
+                        <div class="form-group">
+                            <label for="executor">Виконавець (повне ім'я)</label>
+                            <input 
+                                type="text" 
+                                id="executor" 
+                                placeholder="Іванов Іван Іванович" 
+                                required
+                                minlength="5"
+                                maxlength="100"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="document">Назва документа</label>
+                            <input 
+                                type="text" 
+                                id="document" 
+                                placeholder="Договір оренди приміщення №125" 
+                                required
+                                minlength="5"
+                                maxlength="200"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="dateGiven">Дата передачі</label>
+                            <input 
+                                type="date" 
+                                id="dateGiven" 
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="dateReturned">Дата повернення (необов'язково)</label>
+                            <input 
+                                type="date" 
+                                id="dateReturned"
+                            >
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" id="submit-btn" class="btn btn-primary">Додати документ</button>
+                            <button type="button" id="cancel-btn" class="btn btn-secondary" style="display: none;">Скасувати</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <section class="documents-section">
+                <div class="section-header">
+                    <h2>Список документів</h2>
+                    <div class="api-links">
+                        <a href="/api/documents" target="_blank" class="api-link">JSON API</a>
+                    </div>
+                </div>
+                
+                <div class="documents-container">
+                    <div class="documents-table-wrapper">
+                        <table class="documents-table">
+                            <thead>
+                                <tr>
+                                    <th>Виконавець</th>
+                                    <th>Документ</th>
+                                    <th>Дата передачі</th>
+                                    <th>Дата повернення</th>
+                                    <th>Статус</th>
+                                    <th>Дії</th>
+                                </tr>
+                            </thead>
+                            <tbody id="documents-list">
+                                <tr class="loading-row">
+                                    <td colspan="6">Завантаження...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <div id="notification" class="notification"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
