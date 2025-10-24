@@ -2,13 +2,24 @@ require('dotenv').config()
 const express = require('express')
 const mongoose = require('mongoose')
 const path = require('path')
+const { ApolloServer } = require('apollo-server-express')
 const Document = require('./models/Document')
+const typeDefs = require('./graphql/schema')
+const resolvers = require('./graphql/resolvers')
 
 const app = express()
-const PORT = process.env.PORT
-const MONGODB_URI = process.env.MONGODB_URI
+const PORT = process.env.PORT || 3000
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/documents_lab4'
 
-app.use(express.json())
+// Створення Apollo Server
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  context: ({ req }) => ({
+    // Додатковий контекст якщо потрібен
+  }),
+})
+
 app.use(express.static(path.join(__dirname, 'public')))
 
 mongoose
@@ -146,7 +157,26 @@ app.delete('/api/documents/:id', async (req, res) => {
   }
 })
 
-app.listen(PORT, () => {
-  console.log(`Сервер запущено на порті ${PORT}`)
-  console.log(`Відкрийте http://localhost:${PORT} у браузері`)
+// Функція для запуску сервера
+async function startServer() {
+  // Запуск Apollo Server
+  await server.start()
+  
+  // Застосування Apollo GraphQL middleware
+  server.applyMiddleware({ app, path: '/graphql' })
+  
+  // Додавання express.json() після Apollo middleware
+  app.use('/api', express.json())
+  
+  app.listen(PORT, () => {
+    console.log(`Сервер запущено на порті ${PORT}`)
+    console.log(`Відкрийте http://localhost:${PORT} у браузері`)
+    console.log(`GraphQL Playground доступний на http://localhost:${PORT}${server.graphqlPath}`)
+  })
+}
+
+// Запуск сервера
+startServer().catch(error => {
+  console.error('Помилка запуску сервера:', error)
+  process.exit(1)
 })
