@@ -13,7 +13,7 @@ RUN npm install --omit=dev
 # Copy the rest of the application code to the working directory
 COPY . .
 
-# Expose the port the app runs on (not strictly necessary for a bot, but good practice)
+# Expose the port the app runs on (required for Render deployment)
 EXPOSE 3000
 
 # Create a non-root user to run the application

@@ -2,6 +2,7 @@ import dotenv from 'dotenv'
 import ModelClient, { isUnexpected } from '@azure-rest/ai-inference'
 import { AzureKeyCredential } from '@azure/core-auth'
 import TelegramBot from 'node-telegram-bot-api'
+import express from 'express'
 
 dotenv.config()
 
@@ -150,3 +151,26 @@ bot.on('polling_error', (error) => {
 
 console.log('🤖 Бот запущено! Очікування повідомлень...')
 console.log('📋 Доступні команди: /start')
+
+// Express server for Render port binding
+const app = express()
+const PORT = process.env.PORT || 3000
+
+// Health check endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'Bot is running!', 
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  })
+})
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', bot: 'running' })
+})
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`🌐 Server running on port ${PORT}`)
+})

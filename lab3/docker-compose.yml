@@ -10,9 +10,8 @@ services:
       - .env
     environment:
       - NODE_ENV=production
-    # Uncomment below if you need to expose a port for health checks
-    # ports:
-    #   - "3000:3000"
+    ports:
+      - "3000:3000"
     volumes:
       # Optional: mount logs directory if needed
       - ./logs:/app/logs
